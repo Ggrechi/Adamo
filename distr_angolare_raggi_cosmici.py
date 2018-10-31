@@ -32,8 +32,8 @@ scelta del binning dei due istogrammi per theta e phi
 scelta degli eventi di cui fare il grafico tridimensionale (intervallo)
 """
 rad_deg = "deg"
-binning_n_theta = 50
-binning_n_phi = 50
+binning_n_theta = 100
+binning_n_phi = 100
 n_ev_graph_min, n_ev_graph_max = 0,100
 flag_his_2d = "COLS9"
 nome_istogramma = "dist_ang_mu.root"
@@ -177,15 +177,16 @@ def fit_linear(points_vector, angle):
                             points_vector[event_n][index][0],
                             points_vector[event_n][index][1],)
         fit_xy = xy_tgraph.Fit(fitFunction,"SQ") #phi
-        result_xy = np.arctan(fit_xy.Parameters()[1])
+        tan_result_xy = fit_xy.Parameters()[1]
+        result_xy = np.arctan(tan_result_xy)
         result_phi[event_n] = result_xy
         control = (points_vector[event_n][2][1] 
                   - points_vector[event_n][0][1])
-        if result_xy < 0:
-            result_phi[event_n] = 2*np.pi + result_phi[event_n]
-        if control > 0 and result_xy > 0 :
+        if tan_result_xy < 0:
+            result_phi[event_n] = result_phi[event_n] + 2*np.pi
+        if control > 0 and tan_result_xy > 0 :
             result_phi[event_n] = result_phi[event_n] + np.pi
-        if control < 0 and result_xy < 0 :
+        if control < 0 and tan_result_xy < 0 :
             result_phi[event_n] = result_phi[event_n] - np.pi
 
         xz_tgraph = ROOT.TGraph()
@@ -305,6 +306,7 @@ def main():
     data_points_shifted = shift(data_points, offset_coordinates)
     data_points_rotated = rotate(data_points_shifted, offset_angles)
     
+    
     if graph == True:
         graph_track(data_points_shifted, 
                     n_ev_graph_min, n_ev_graph_max)
@@ -313,7 +315,7 @@ def main():
                      rad_deg, 
                      binning_n_theta, binning_n_phi,
                      flag=flag_his_2d,)
-
+    
     return True
         
 
