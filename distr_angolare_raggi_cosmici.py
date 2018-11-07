@@ -31,12 +31,17 @@ scelta visualizzazione in gradi "deg" o in radianti "rad"
 scelta del binning dei due istogrammi per theta e phi
 scelta degli eventi di cui fare il grafico tridimensionale (intervallo)
 """
-rad_deg = "deg"
-binning_n_theta = 100
-binning_n_phi = 100
+rad_deg = "rad" #in deg non è implementata correttamente l'accettanza
+binning_n_theta = 80
+binning_n_phi = 80
 n_ev_graph_min, n_ev_graph_max = 0,100
 flag_his_2d = "COLS9"
 nome_istogramma = "dist_ang_mu.root"
+
+"""
+"""
+tempo_misura = 30*60*60
+superficie = float(7.0*5.33)
 
 """
 gli offset devono essere inseriti con il segno fornito dal programma di 
@@ -229,10 +234,10 @@ def distribution(vector_data_points, angle, n_bin_theta, n_bin_phi,flag):
     theta, phi, = fit_linear(vector_data_points, angle)
     
     if angle == "deg":
-        min_theta, max_theta = 0, 100
+        min_theta, max_theta = 0, 90
         min_phi, max_phi = 0, 360
     else:
-        min_theta, max_theta = 0, np.deg2rad(100)
+        min_theta, max_theta = 0, np.deg2rad(90)
         min_phi, max_phi = 0., np.deg2rad(360)
     if debug == True:
         print "[%2.4f]creazione e riempimento istogramma"%(
@@ -242,9 +247,29 @@ def distribution(vector_data_points, angle, n_bin_theta, n_bin_phi,flag):
                                      n_bin_theta,min_theta,max_theta,
                                      n_bin_phi,min_phi,max_phi,
                                      )
+
+    fluxXaccettanza_hist_1d = ROOT.TH1F("flusso X accettanza",
+                        "flusso X accettanza",
+                        n_bin_theta,min_theta,max_theta,)
+                        
+    accettanza_hist_1d = ROOT.TH1F("accettanza",
+                        "accettanza",
+                        n_bin_theta,min_theta,max_theta,)
     for i in range(len(theta)):
         histogram_angular_2d.Fill(theta[i],phi[i])
+        fluxXaccettanza_hist_1d.Fill(theta[i])
+        accettanza_hist_1d.Fill(theta[i])
 
+    function_0 = ROOT.TF1("sin(x)*cos(x)","sin(x)*cos(x)", 0, np.pi/2)
+    factor = superficie * tempo_misura * 2 * np.pi
+    fluxXaccettanza_hist_1d.Divide(function_0,factor)
+    if debug == True:
+        int_ottavo_ang_sol = fluxXaccettanza_hist_1d.Integral(0,29)
+        print"[%2.4f]divisa distribuzione per i fattori geometrici e cost."%(
+                                                      time.time() - srt_time,)
+        print "integrale di un ottavo dell'angolo solido: %s"%int_ottavo_ang_sol
+        print "proiezione su tutto l'angolo solido: %s m^-2 s^-1"%(int_ottavo_ang_sol*80000)
+        
     canvas = ROOT.TCanvas()
     canvas.Divide(2,2)
     canvas.cd(1)
@@ -263,6 +288,24 @@ def distribution(vector_data_points, angle, n_bin_theta, n_bin_phi,flag):
     histogram_angular_1d_phi.GetXaxis().SetTitle("phi")
     histogram_angular_1d_phi.GetYaxis().SetTitle("dN/d(phi)")    
     histogram_angular_1d_phi.Draw()
+    canvas.cd(4)
+    fluxXaccettanza_hist_1d.GetXaxis().SetTitle("theta")
+    fluxXaccettanza_hist_1d.GetYaxis().SetTitle("1/(cm^2 s)")    
+    #flux = ROOT.TF1("cos(x)^2","[0]*cos(x)^2", 0, np.pi/2)
+    #fluxXaccettanza_hist_1d.Fit(flux,"","",0, 0.5)
+    #flux.Draw()
+    fluxXaccettanza_hist_1d.Draw()
+    """
+    canvas.cd(6)
+    function_1 = ROOT.TF1("sin(x)*cos(x)^3","sin(x)*cos(x)*cos(x)*cos(x)", 0, np.pi/2)
+    factor = superficie * tempo_misura * 2 * np.pi * 4 / np.pi
+    accettanza_hist_1d.Divide(function_1, factor)
+    accettanza_hist_1d.GetXaxis().SetTitle("theta")
+    accettanza_hist_1d.GetYaxis().SetTitle("a.u.")    
+    #fit_func = ROOT.TF1("cos(x)^p0","[1]*cos(x)^[0]", 0, np.pi/2)
+    #accettanza_hist_1d.Fit(fit_func,"","",0, 1)
+    accettanza_hist_1d.Draw()
+    """
     if debug == True: print "[%2.4f]istogrammi costruiti"%(
                                                        time.time() - srt_time,)
     null = raw_input("premere per continuare")
